@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Websocket example</title>
+</head>
+<script src="js/sockjs-0.3.4.js"></script>
+<script src="js/stomp.js"></script>
+<body>
+<form>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn">Disconnect</button>
+    <br/>
+    <label for="toUser">To user</label>
+    <input type="text" placeholder="To:" id="toUser"/>
+    <br/>
+    <label for="message">Message</label>
+    <input type="text" placeholder="Message" id="message"/>
+    <button id="sendBtn">Send</button>
+</form>
+<script type="text/javascript">
+    const connectBtn = document.getElementById("connectBtn");
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const toUser = document.getElementById('toUser');
+    const message = document.getElementById("message");
+
+    let fromUser = null;
+    let socket = null;
+    let stompClient = null;
+
+    const connectHandler = (event) => {
+        event.preventDefault();
+
+        socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, (frame) => {
+            console.log('Frame: ' + frame);
+            const suffix = frame.headers['queue-suffix'];
+            fromUser = frame.headers['user-name'];
+
+            // console.log('Suffix:' + suffix);
+            // stompClient.subscribe('/broker/message/receive', (receivedMessage) => {
+            //     console.log("You received new message" + receivedMessage)
+            // })
+
+            stompClient.subscribe('/myuser/broker/yalco', userSpecificMessage =>{
+                console.log('You received user specific message' + userSpecificMessage);
+            })
+        });
+
+
+    }
+
+    const disconnectHandler = (event) => {
+        event.preventDefault();
+
+        stompClient.disconnect();
+        socket.close();
+    }
+
+    const sendHandler = (event) => {
+        event.preventDefault();
+        const toUserValue = toUser.value;
+        const messageValue = message.value;
+        if (messageValue && toUserValue) {
+            const mes = {
+                fromUser: fromUser,
+                toUser: toUserValue,
+                content: messageValue
+            }
+            console.log(stompClient.send('/app/message', {}, JSON.stringify(mes)));
+        }
+    }
+
+
+    connectBtn.addEventListener('click', connectHandler);
+    disconnectBtn.addEventListener('click', disconnectHandler);
+    sendBtn.addEventListener('click', sendHandler);
+
+
+</script>
+</body>
+</html>
