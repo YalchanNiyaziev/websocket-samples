@@ -47,7 +47,7 @@ public class WSConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 //Method .addInterceptors for enabling interceptor
 //                .addInterceptors(new HttpSessionHandshakeInterceptor())
-                .setHandshakeHandler(new CustomWebSocketHandshakeHandler())
+//                .setHandshakeHandler(new CustomWebSocketHandshakeHandler())
                 .withSockJS();
     }
 }
