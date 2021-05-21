@@ -1,5 +1,7 @@
 package com.yalco.websockets.config.auth;
 
+import com.yalco.websockets.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,6 +16,9 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 @Configuration
 public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
+    @Autowired
+    private UserService userService;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable();
@@ -25,13 +30,12 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
                 .defaultSuccessUrl("/index_medium.html",true)
                 .failureUrl("/login.html?error=true");
 
-//        http.authorizeRequests()
-//                .mvcMatchers("/api/admin")
-//                .hasRole("ADMIN")
-//                .mvcMatchers("/api/*")
-//                .hasRole("USER")
-//                .and()
-//                .httpBasic();
+        http.authorizeRequests()
+                .mvcMatchers("/login.html")
+                .permitAll()
+                .and()
+                .authorizeRequests().anyRequest().authenticated();
+
     }
     @Bean
     public UserDetailsService userDetailsService() {
@@ -66,6 +70,11 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
         uds.createUser(user3);
         uds.createUser(user4);
         uds.createUser(admin);
+
+        userService.addUser(user.getUsername());
+        userService.addUser(user2.getUsername());
+        userService.addUser(user3.getUsername());
+        userService.addUser(user4.getUsername());
 
         return uds;
     }

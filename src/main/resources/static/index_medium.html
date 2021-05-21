@@ -7,27 +7,52 @@
 <script src="js/sockjs-0.3.4.js"></script>
 <script src="js/stomp.js"></script>
 <body>
-<form>
-    <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn">Disconnect</button>
-    <br/>
-    <label for="toUser">To user</label>
-    <input type="text" placeholder="To:" id="toUser"/>
-    <br/>
-    <label for="message">Message</label>
-    <input type="text" placeholder="Message" id="message"/>
-    <button id="sendBtn">Send</button>
-</form>
+<div style="display: flex; border: 1px solid green">
+    <div style="border: 2px solid red">
+        <form>
+            <select id="users" style="width: 200px" name="cars" size="15">
+            </select><br><br>
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn">Disconnect</button>
+            <br/>
+            <br/>
+        </form>
+    </div>
+    <div style="border: 2px solid blue">
+        <div id="messageContainer">
+        </div>
+        <form>
+            <textarea style="height: 50px; width: 350px" placeholder="Message" id="message"></textarea>
+            <br/>
+            <button id="sendBtn">Send</button>
+        </form>
+    </div>
+</div>
 <script type="text/javascript">
+
+    const usersSelect = document.getElementById("users");
     const connectBtn = document.getElementById("connectBtn");
     const disconnectBtn = document.getElementById("disconnectBtn");
     const sendBtn = document.getElementById("sendBtn");
-    const toUser = document.getElementById('toUser');
     const message = document.getElementById("message");
+    const messageContainer = document.getElementById("messageContainer");
 
     let fromUser = null;
+    let toUser = null;
     let socket = null;
     let stompClient = null;
+
+    const createSelectFromUsers = (users) => {
+        const fragment = document.createDocumentFragment();
+        users.forEach(u => {
+            const option = document.createElement('option');
+            option.value = u.username;
+            option.text = u.username;
+            fragment.append(option);
+        });
+        usersSelect.append(fragment)
+    }
+
 
     const connectHandler = (event) => {
         event.preventDefault();
@@ -45,12 +70,12 @@
             //     console.log("You received new message" + receivedMessage)
             // })
 
-            stompClient.subscribe('/myuser/broker/yalco', userSpecificMessage =>{
+            stompClient.subscribe('/myuser/broker/yalco', userSpecificMessage => {
                 console.log('You received user specific message' + userSpecificMessage);
             })
         });
 
-
+        fetchAllUsers();
     }
 
     const disconnectHandler = (event) => {
@@ -62,22 +87,70 @@
 
     const sendHandler = (event) => {
         event.preventDefault();
-        const toUserValue = toUser.value;
+        const toUserValue = toUser;
         const messageValue = message.value;
         if (messageValue && toUserValue) {
             const mes = {
                 fromUser: fromUser,
                 toUser: toUserValue,
                 content: messageValue
+            };
+
+            if (stompClient.send('/app/message', {}, JSON.stringify(mes))) {
+                appendMessageToContainer(mes.content, '#153c98', 'right');
+                sendBtn.innerText = '';
             }
-            console.log(stompClient.send('/app/message', {}, JSON.stringify(mes)));
         }
+    }
+
+    const fetchAllUsers = () => {
+        fetch('http://localhost:8080/users')
+            .then(res => res.json())
+            .then(createSelectFromUsers)
+            .catch(console.log);
+    }
+    const selectUserHandler = (event) => {
+        removeAllChildFromContainer();
+        toUser = event.target.value;
+
+        fetch(`http://localhost:8080/conversations/messages/${fromUser}/${toUser}`)
+            .then(res => res.json())
+            .then(msgs => {
+                msgs.forEach(m => {
+                    if (m.fromUser !== fromUser) {
+                        appendMessageToContainer(m.messageContent, 'grey', null);
+                    } else {
+                        appendMessageToContainer(m.messageContent, '#153c98', 'right');
+                    }
+                });
+
+            })
+            .catch(console.log);
+    }
+
+    const appendMessageToContainer = (message, bgColor, textAlign) => {
+        const messageElement = document.createElement('div');
+        messageElement.style.margin = '20px';
+        messageElement.style.borderRadius = '3px';
+        messageElement.style.color = 'white';
+        messageElement.style.padding = '10px';
+        messageElement.style.backgroundColor = bgColor;
+        messageElement.style.textAlign = textAlign;
+        messageElement.innerText = message;
+        messageContainer.appendChild(messageElement);
+        messageElement.scrollIntoView();
+
+    }
+
+    const removeAllChildFromContainer = () => {
+        messageContainer.innerHTML = '';
     }
 
 
     connectBtn.addEventListener('click', connectHandler);
     disconnectBtn.addEventListener('click', disconnectHandler);
     sendBtn.addEventListener('click', sendHandler);
+    usersSelect.addEventListener('change', selectUserHandler);
 
 
 </script>
